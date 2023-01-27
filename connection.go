@@ -51,9 +51,8 @@ func (config *Config) Connect() *Conn {
 }
 
 type Conn struct {
-	db            *sqlx.DB
-	tx            *sqlx.Tx
-	enableLogging bool
+	db *sqlx.DB
+	tx *sqlx.Tx
 }
 
 type Transactioner interface {
