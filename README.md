@@ -14,7 +14,7 @@ A postgres client with support for enforcing transactions and allowing the user 
 
 `ConnectFromEnv` assumes environment variables:
 
-```
+```bash
 DB_USER
 DB_PASS
 DB_HOST
@@ -24,7 +24,7 @@ DB_DATABASE
 
 to exist.
 
-```
+```go
 package main
 
 import (
