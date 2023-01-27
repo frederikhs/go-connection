@@ -5,7 +5,7 @@
 [![Quality](https://goreportcard.com/badge/github.com/frederikhs/go-connection)](https://goreportcard.com/report/github.com/frederikhs/go-connection)
 [![Test](https://github.com/frederikhs/go-connection/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/frederikhs/go-connection/actions/workflows/test.yml)
 
-An opinionated small postgres client library based on [jmoiron/sqlx](https://github.com/jmoiron/sqlx)
+An opinionated small PostgreSQL client library based on [jmoiron/sqlx](https://github.com/jmoiron/sqlx)
 
 ### about
 A postgres client with support for enforcing transactions and allowing the user to utilize transactions with the same interface as when not in a transaction.
