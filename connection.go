@@ -31,6 +31,16 @@ func ConnectFromEnv() *Conn {
 	return config.Connect()
 }
 
+func NewConfig(user, pass, host, port, database string) *Config {
+	return &Config{
+		User:     user,
+		Pass:     pass,
+		Host:     host,
+		Port:     port,
+		Database: database,
+	}
+}
+
 func (config *Config) Connect() *Conn {
 	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", config.Host, config.Port, config.User, config.Database, config.Pass))
 	if err != nil {
