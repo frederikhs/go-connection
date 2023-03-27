@@ -79,12 +79,28 @@ func (conn *Conn) QueryRow(query string, args ...any) *sql.Row {
 	return conn.tx.QueryRow(query, args...)
 }
 
+func (conn *Conn) NamedQuery(query string, args any) (*sqlx.Rows, error) {
+	if conn.tx == nil {
+		return conn.NamedQuery(query, args)
+	}
+
+	return conn.tx.NamedQuery(query, args)
+}
+
 func (conn *Conn) Exec(query string, args ...any) (sql.Result, error) {
 	if conn.tx == nil {
 		panic(ErrTransactionNotStarted)
 	}
 
 	return conn.tx.Exec(query, args...)
+}
+
+func (conn *Conn) NamedExec(query string, arg any) (sql.Result, error) {
+	if conn.tx == nil {
+		panic(ErrTransactionNotStarted)
+	}
+
+	return conn.tx.NamedExec(query, arg)
 }
 
 func (conn *Conn) Select(dest interface{}, query string, args ...interface{}) error {
