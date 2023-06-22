@@ -48,3 +48,12 @@ func main()  {
     ...
 }
 ```
+
+### release
+
+release a new version by creating a tag and pushing it
+
+```bash
+git tag -a v0.x.0 -m "v0.x.0"
+git push origin v0.x.0
+```
