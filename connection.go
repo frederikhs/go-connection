@@ -11,12 +11,22 @@ import (
 	"time"
 )
 
+type SSLMode string
+
+const (
+	SSLModeDisable    SSLMode = "disable"
+	SSLModeRequire    SSLMode = "require"
+	SSLModeVerifyFull SSLMode = "verify-full"
+	SSLModeVerifyCA   SSLMode = "verify-ca"
+)
+
 type Config struct {
 	User     string
 	Pass     string
 	Host     string
 	Port     string
 	Database string
+	Mode     SSLMode
 }
 
 func ConnectFromEnv() *Conn {
@@ -31,18 +41,19 @@ func ConnectFromEnv() *Conn {
 	return config.Connect()
 }
 
-func NewConfig(user, pass, host, port, database string) *Config {
+func NewConfig(user, pass, host, port, database string, mode SSLMode) *Config {
 	return &Config{
 		User:     user,
 		Pass:     pass,
 		Host:     host,
 		Port:     port,
 		Database: database,
+		Mode:     mode,
 	}
 }
 
 func (config *Config) Connect() *Conn {
-	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", config.Host, config.Port, config.User, config.Database, config.Pass))
+	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", config.Host, config.Port, config.User, config.Database, config.Pass, config.Mode))
 	if err != nil {
 		log.Println("unable to connect to database:", err)
 		time.Sleep(time.Second * 5)

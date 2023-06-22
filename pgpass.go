@@ -38,7 +38,7 @@ func getHosts() ([]pgpass.Entry, error) {
 	return entries, er.Err()
 }
 
-func GetDatabaseEntryConnection(hostQuery string) *Config {
+func GetDatabaseEntryConnection(hostQuery string, mode SSLMode) *Config {
 	hosts, err := getHosts()
 	if err != nil {
 		panic(err)
@@ -50,7 +50,7 @@ func GetDatabaseEntryConnection(hostQuery string) *Config {
 			continue
 		}
 
-		return NewConfig(d.Username, d.Password, d.Hostname, d.Port, d.Database)
+		return NewConfig(d.Username, d.Password, d.Hostname, d.Port, d.Database, mode)
 	}
 
 	return nil
