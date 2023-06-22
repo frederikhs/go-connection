@@ -53,7 +53,15 @@ func NewConfig(user, pass, host, port, database string, mode SSLMode) *Config {
 }
 
 func (config *Config) Connect() *Conn {
-	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", config.Host, config.Port, config.User, config.Database, config.Pass, config.Mode))
+	var mode SSLMode
+
+	if config.Mode == "" {
+		mode = SSLModeDisable
+	} else {
+		mode = config.Mode
+	}
+
+	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", config.Host, config.Port, config.User, config.Database, config.Pass, mode))
 	if err != nil {
 		log.Println("unable to connect to database:", err)
 		time.Sleep(time.Second * 5)
