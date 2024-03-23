@@ -30,15 +30,17 @@ type Config struct {
 }
 
 func ConnectFromEnv() *Conn {
-	config := &Config{
+	return NewConfigFromEnv().Connect()
+}
+
+func NewConfigFromEnv() *Config {
+	return &Config{
 		User:     os.Getenv("DB_USER"),
 		Pass:     os.Getenv("DB_PASS"),
 		Host:     os.Getenv("DB_HOST"),
 		Port:     os.Getenv("DB_PORT"),
 		Database: os.Getenv("DB_DATABASE"),
 	}
-
-	return config.Connect()
 }
 
 func NewConfig(user, pass, host, port, database string, mode SSLMode) *Config {
@@ -147,6 +149,10 @@ func (conn *Conn) Rebind(s string) string {
 }
 
 func (conn *Conn) Begin() error {
+	if conn.tx != nil {
+		return ErrTransactionAlreadyStarted
+	}
+
 	tx, err := conn.db.Beginx()
 	if err != nil {
 		return err
@@ -159,7 +165,7 @@ func (conn *Conn) Begin() error {
 
 func (conn *Conn) Commit() error {
 	if conn.tx == nil {
-		return ErrCommit
+		return ErrTransactionNotStarted
 	}
 
 	err := conn.tx.Commit()
@@ -170,7 +176,7 @@ func (conn *Conn) Commit() error {
 
 func (conn *Conn) Rollback() error {
 	if conn.tx == nil {
-		return ErrRollback
+		return ErrTransactionNotStarted
 	}
 
 	err := conn.tx.Rollback()

@@ -19,5 +19,7 @@ jobs:
           version: latest
           args: --timeout=3m
       - run: go vet ./...
+      - run: make start-db
       - run: go test -race ./...
+      - run: make stop-db
       - run: go build
