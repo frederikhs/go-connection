@@ -44,6 +44,7 @@ func givenLaunchedPostgresContainerAndConfig(t *testing.T) *Config {
 }
 
 func TestTransactions(t *testing.T) {
+	t.Parallel()
 	connection := givenLaunchedPostgresContainerAndConfig(t).Connect()
 
 	t.Run("TestConnectCanBeginAndRollbackTransaction", func(t *testing.T) {
