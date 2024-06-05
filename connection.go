@@ -21,12 +21,14 @@ const (
 )
 
 type Config struct {
-	User     string
-	Pass     string
-	Host     string
-	Port     string
-	Database string
-	Mode     SSLMode
+	User              string
+	Pass              string
+	Host              string
+	Port              string
+	Database          string
+	Mode              SSLMode
+	Logger            *log.Logger
+	ConnectionTimeout time.Duration
 }
 
 func ConnectFromEnv() *Conn {
@@ -63,20 +65,28 @@ func (config *Config) Connect() *Conn {
 		mode = config.Mode
 	}
 
+	if config.ConnectionTimeout == time.Duration(0) {
+		config.ConnectionTimeout = time.Second * 5
+	}
+
+	if config.Logger == nil {
+		config.Logger = log.Default()
+	}
+
 	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", config.Host, config.Port, config.User, config.Database, config.Pass, mode))
 	if err != nil {
-		log.Println("unable to connect to database:", err)
+		config.Logger.Println("unable to connect to database:", err)
 		time.Sleep(time.Second * 5)
 		return config.Connect()
 	}
 
 	if db.Ping() != nil {
-		log.Println("unable to connect to database:", err)
+		config.Logger.Println("unable to connect to database:", err)
 		time.Sleep(time.Second * 5)
 		return config.Connect()
 	}
 
-	log.Println("connected to database")
+	config.Logger.Println("connected to database")
 
 	return &Conn{db: db}
 }
