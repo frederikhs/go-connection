@@ -15,14 +15,18 @@ func TestMatchHosts(t *testing.T) {
 		{"hiper.dk", "db.hiper.dk", false},
 	}
 
-	for _, test := range tests {
-		result := hostEquals(test.query, test.host)
-		if result && !test.match {
-			t.Fatalf("host query %s equals %s but should not", test.query, test.host)
-		}
+	for _, testCase := range tests {
+		test := testCase
+		t.Run(test.query, func(t *testing.T) {
+			t.Parallel()
+			result := hostEquals(test.query, test.host)
+			if result && !test.match {
+				t.Fatalf("host query %s equals %s but should not", test.query, test.host)
+			}
 
-		if !result && test.match {
-			t.Fatalf("host query %s dot not equal %s but should", test.query, test.host)
-		}
+			if !result && test.match {
+				t.Fatalf("host query %s dot not equal %s but should", test.query, test.host)
+			}
+		})
 	}
 }
