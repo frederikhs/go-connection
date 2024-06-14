@@ -73,7 +73,7 @@ func (config *Config) Connect() *Conn {
 		config.Logger = log.Default()
 	}
 
-	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", config.Host, config.Port, config.User, config.Database, config.Pass, mode))
+	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s search_path=public", config.Host, config.Port, config.User, config.Database, config.Pass, mode))
 	if err != nil {
 		config.Logger.Println("unable to connect to database:", err)
 		time.Sleep(time.Second * 5)
