@@ -29,6 +29,7 @@ type Config struct {
 	Mode              SSLMode
 	Logger            *log.Logger
 	ConnectionTimeout time.Duration
+	FailFast          bool
 }
 
 func ConnectFromEnv() *Conn {
@@ -75,6 +76,9 @@ func (config *Config) Connect() *Conn {
 
 	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s search_path=public", config.Host, config.Port, config.User, config.Database, config.Pass, mode))
 	if err != nil {
+		if config.FailFast {
+			panic(err)
+		}
 		config.Logger.Println("unable to connect to database:", err)
 		time.Sleep(time.Second * 5)
 		return config.Connect()
