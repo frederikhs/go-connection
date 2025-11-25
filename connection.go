@@ -96,14 +96,39 @@ func (config *Config) Connect() *Conn {
 }
 
 type Conn struct {
-	db *sqlx.DB
-	tx *sqlx.Tx
+	db               *sqlx.DB
+	tx               *sqlx.Tx
+	enableSavePoints bool
+	savePoints       []string
 }
 
 type Transactioner interface {
 	Begin() error
 	Commit() error
 	Rollback() error
+}
+
+func (conn *Conn) EnableNestedTransactions() error {
+	if conn.enableSavePoints {
+		return ErrSavePointsAlreadyEnabled
+	}
+	conn.enableSavePoints = true
+
+	return nil
+}
+
+func (conn *Conn) DisableNestedTransactions() error {
+	if !conn.enableSavePoints {
+		return ErrSavePointsNotEnabled
+	}
+
+	if len(conn.savePoints) > 0 {
+		return ErrSavePointsStillNotReleased
+	}
+
+	conn.enableSavePoints = false
+
+	return nil
 }
 
 func (conn *Conn) QueryRow(query string, args ...any) *sql.Row {
@@ -164,7 +189,18 @@ func (conn *Conn) Rebind(s string) string {
 
 func (conn *Conn) Begin() error {
 	if conn.tx != nil {
-		return ErrTransactionAlreadyStarted
+		if !conn.enableSavePoints {
+			return ErrTransactionAlreadyStarted
+		}
+
+		spName := fmt.Sprintf("savepoint_%d", len(conn.savePoints))
+		_, err := conn.tx.Exec("SAVEPOINT " + spName)
+		if err != nil {
+			return err
+		}
+
+		conn.savePoints = append(conn.savePoints, spName)
+		return nil
 	}
 
 	tx, err := conn.db.Beginx()
@@ -182,6 +218,17 @@ func (conn *Conn) Commit() error {
 		return ErrTransactionNotStarted
 	}
 
+	if len(conn.savePoints) > 0 {
+		if !conn.enableSavePoints {
+			return ErrSavePointsNotEnabled
+		}
+
+		nextSavePoint := conn.savePoints[len(conn.savePoints)-1]
+		_, err := conn.tx.Exec("RELEASE SAVEPOINT " + nextSavePoint)
+		conn.savePoints = conn.savePoints[:len(conn.savePoints)-1]
+		return err
+	}
+
 	err := conn.tx.Commit()
 	conn.tx = nil
 
@@ -193,8 +240,32 @@ func (conn *Conn) Rollback() error {
 		return ErrTransactionNotStarted
 	}
 
+	if len(conn.savePoints) > 0 {
+		if !conn.enableSavePoints {
+			return ErrSavePointsNotEnabled
+		}
+
+		nextSavePoint := conn.savePoints[len(conn.savePoints)-1]
+		_, err := conn.tx.Exec("ROLLBACK TO SAVEPOINT " + nextSavePoint)
+		conn.savePoints = conn.savePoints[:len(conn.savePoints)-1]
+		return err
+	}
+
 	err := conn.tx.Rollback()
 	conn.tx = nil
 
 	return err
+}
+
+func (conn *Conn) RollbackAll() error {
+	for {
+		if conn.tx != nil {
+			err := conn.Rollback()
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
 }
