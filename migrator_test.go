@@ -1,8 +1,10 @@
 package connection
 
 import (
+	"embed"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/stretchr/testify/assert"
+	"io/fs"
 	"testing"
 	"time"
 )
@@ -51,4 +53,30 @@ func TestMigrator(t *testing.T) {
 
 	err = migrator.Down()
 	assert.NoError(t, err)
+}
+
+//go:embed _testing/migrations/*.sql
+var MigrationsFS embed.FS
+
+func TestEmbeddedFileSystemAsMigrationsPath(t *testing.T) {
+	sub, err := fs.Sub(MigrationsFS, "_testing/migrations")
+	assert.NoError(t, err)
+
+	t.Parallel()
+	config := givenLaunchedPostgresContainerAndConfig(t)
+	connection := config.Connect()
+
+	migrator, err := connection.GetMigratorFromFs(sub)
+	assert.NoError(t, err)
+
+	err = migrator.Up()
+	assert.NotErrorIs(t, err, migrate.ErrNoChange)
+
+	driver, err := connection.getMigratorDriver()
+	assert.NoError(t, err)
+
+	version, dirty, err := driver.Version()
+	assert.NoError(t, err)
+	assert.False(t, dirty)
+	assert.Equal(t, 1, version)
 }
