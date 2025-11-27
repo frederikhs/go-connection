@@ -3,7 +3,7 @@ package connection
 import (
 	"embed"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io/fs"
 	"testing"
 	"time"
@@ -27,32 +27,32 @@ func TestMigrator(t *testing.T) {
 	assertAccountsLength := func(length int) {
 		var accounts []Account
 		err := connection.Select(&accounts, "SELECT * FROM test.account")
-		assert.NoError(t, err)
-		assert.Len(t, accounts, length)
+		require.NoError(t, err)
+		require.Len(t, accounts, length)
 	}
 
 	migrator, err := connection.GetMigrator("file://_testing/migrations")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = migrator.Up()
-	assert.NotErrorIs(t, err, migrate.ErrNoChange)
+	require.NotErrorIs(t, err, migrate.ErrNoChange)
 
 	err = connection.Begin()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, err = connection.Exec("INSERT INTO test.account (account_name) VALUES ($1), ($2)", "test d", "test e")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// 3 accounts come from migrations file, 2 from test
 	assertAccountsLength(5)
 
 	err = connection.Rollback()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assertAccountsLength(3)
 
 	err = migrator.Down()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 //go:embed _testing/migrations/*.sql
@@ -60,23 +60,23 @@ var MigrationsFS embed.FS
 
 func TestEmbeddedFileSystemAsMigrationsPath(t *testing.T) {
 	sub, err := fs.Sub(MigrationsFS, "_testing/migrations")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	t.Parallel()
 	config := givenLaunchedPostgresContainerAndConfig(t)
 	connection := config.Connect()
 
 	migrator, err := connection.GetMigratorFromFs(sub)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = migrator.Up()
-	assert.NotErrorIs(t, err, migrate.ErrNoChange)
+	require.NotErrorIs(t, err, migrate.ErrNoChange)
 
 	driver, err := connection.getMigratorDriver()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	version, dirty, err := driver.Version()
-	assert.NoError(t, err)
-	assert.False(t, dirty)
-	assert.Equal(t, 1, version)
+	require.NoError(t, err)
+	require.False(t, dirty)
+	require.Equal(t, 1, version)
 }

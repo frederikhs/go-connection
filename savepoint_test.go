@@ -1,7 +1,6 @@
 package connection
 
 import (
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -36,12 +35,12 @@ func testEnableAndStartATransactionWithSavePoint(t *testing.T, connection *Conn)
 	require.NoError(t, err)
 
 	err = connection.Begin()
-	assert.NoError(t, err)
-	assert.Empty(t, connection.savePoints)
+	require.NoError(t, err)
+	require.Empty(t, connection.savePoints)
 
 	err = connection.Begin()
-	assert.NoError(t, err)
-	assert.NotEmpty(t, connection.savePoints)
+	require.NoError(t, err)
+	require.NotEmpty(t, connection.savePoints)
 }
 
 func testEnableDisableNestedTransactions(t *testing.T, connection *Conn) {
