@@ -80,13 +80,13 @@ func (config *Config) Connect() *Conn {
 			panic(err)
 		}
 		config.Logger.Println("unable to connect to database:", err)
-		time.Sleep(time.Second * 5)
+		time.Sleep(config.ConnectionTimeout)
 		return config.Connect()
 	}
 
 	if db.Ping() != nil {
 		config.Logger.Println("unable to connect to database:", err)
-		time.Sleep(time.Second * 5)
+		time.Sleep(config.ConnectionTimeout)
 		return config.Connect()
 	}
 
