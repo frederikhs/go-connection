@@ -1,13 +1,14 @@
 package connection
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSavePoints(t *testing.T) {
 	t.Parallel()
-	config := givenLaunchedPostgresContainerAndConfig(t)
+	config := givenLaunchedPostgresContainerAndConfig(defaultContainerOptions(), t)
 
 	t.Run("TestEnableAndStartATransactionWithSavePoint", func(t *testing.T) {
 		testEnableAndStartATransactionWithSavePoint(t, config.Connect())

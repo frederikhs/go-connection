@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 	"log"
 	"os"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 type SSLMode string
@@ -30,6 +31,7 @@ type Config struct {
 	Logger            *log.Logger
 	ConnectionTimeout time.Duration
 	FailFast          bool
+	SearchPath        *string
 }
 
 func ConnectFromEnv() *Conn {
@@ -46,14 +48,15 @@ func NewConfigFromEnv() *Config {
 	}
 }
 
-func NewConfig(user, pass, host, port, database string, mode SSLMode) *Config {
+func NewConfig(user, pass, host, port, database string, mode SSLMode, searchPath *string) *Config {
 	return &Config{
-		User:     user,
-		Pass:     pass,
-		Host:     host,
-		Port:     port,
-		Database: database,
-		Mode:     mode,
+		User:       user,
+		Pass:       pass,
+		Host:       host,
+		Port:       port,
+		Database:   database,
+		Mode:       mode,
+		SearchPath: searchPath,
 	}
 }
 
@@ -74,7 +77,12 @@ func (config *Config) Connect() *Conn {
 		config.Logger = log.Default()
 	}
 
-	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s search_path=public", config.Host, config.Port, config.User, config.Database, config.Pass, mode))
+	if config.SearchPath == nil {
+		var path = "public"
+		config.SearchPath = &path
+	}
+
+	db, err := sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s search_path=%s", config.Host, config.Port, config.User, config.Database, config.Pass, mode, *config.SearchPath))
 	if err != nil {
 		if config.FailFast {
 			panic(err)

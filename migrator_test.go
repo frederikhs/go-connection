@@ -2,16 +2,17 @@ package connection
 
 import (
 	"embed"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/stretchr/testify/require"
 	"io/fs"
 	"testing"
 	"time"
+
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMigrator(t *testing.T) {
 	t.Parallel()
-	config := givenLaunchedPostgresContainerAndConfig(t)
+	config := givenLaunchedPostgresContainerAndConfig(defaultContainerOptions(), t)
 
 	connection := config.Connect()
 	t.Cleanup(func() {
@@ -63,7 +64,7 @@ func TestEmbeddedFileSystemAsMigrationsPath(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Parallel()
-	config := givenLaunchedPostgresContainerAndConfig(t)
+	config := givenLaunchedPostgresContainerAndConfig(defaultContainerOptions(), t)
 	connection := config.Connect()
 
 	migrator, err := connection.GetMigratorFromFs(sub)

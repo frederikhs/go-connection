@@ -2,6 +2,7 @@ package connection
 
 import (
 	"fmt"
+
 	"github.com/tg/pgpass"
 )
 
@@ -50,7 +51,7 @@ func GetDatabaseEntryConnection(hostQuery string, mode SSLMode) *Config {
 			continue
 		}
 
-		return NewConfig(d.Username, d.Password, d.Hostname, d.Port, d.Database, mode)
+		return NewConfig(d.Username, d.Password, d.Hostname, d.Port, d.Database, mode, nil)
 	}
 
 	return nil

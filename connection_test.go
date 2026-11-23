@@ -2,26 +2,58 @@ package connection
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"testing"
-	"time"
 )
 
-func givenLaunchedPostgresContainerAndConfig(t *testing.T) *Config {
-	ctx := context.Background()
+type containerOptions struct {
+	ctx        context.Context
+	dbUser     string
+	dbPassword string
+	dbName     string
+	sslMode    SSLMode
+	searchPath *string
+}
 
-	dbName := "aaa"
-	dbUser := "bbb"
-	dbPassword := "ccc"
+func defaultContainerOptions() containerOptions {
+	return containerOptions{
+		ctx:        context.Background(),
+		dbUser:     "aaa",
+		dbPassword: "bbb",
+		dbName:     "ccc",
+		sslMode:    SSLModeDisable,
+		searchPath: nil,
+	}
+}
 
-	postgresContainer, err := postgres.RunContainer(ctx,
+func givenLaunchedPostgresContainerAndConfig(opt containerOptions, t *testing.T) *Config {
+	postgresContainer := launchPostgresContainer(opt, t)
+
+	t.Cleanup(func() {
+		err := postgresContainer.Terminate(opt.ctx)
+		assert.NoError(t, err)
+	})
+
+	containerPort, err := postgresContainer.MappedPort(opt.ctx, "5432/tcp")
+	assert.NoError(t, err)
+
+	host, err := postgresContainer.Host(opt.ctx)
+	assert.NoError(t, err)
+
+	return NewConfig(opt.dbUser, opt.dbPassword, host, containerPort.Port(), opt.dbName, SSLModeDisable, opt.searchPath)
+}
+
+func launchPostgresContainer(opt containerOptions, t *testing.T) testcontainers.Container {
+	postgresContainer, err := postgres.RunContainer(opt.ctx,
 		testcontainers.WithImage("docker.io/postgres:16-alpine"),
-		postgres.WithDatabase(dbName),
-		postgres.WithUsername(dbUser),
-		postgres.WithPassword(dbPassword),
+		postgres.WithDatabase(opt.dbName),
+		postgres.WithUsername(opt.dbUser),
+		postgres.WithPassword(opt.dbPassword),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
@@ -29,23 +61,12 @@ func givenLaunchedPostgresContainerAndConfig(t *testing.T) *Config {
 	)
 	assert.NoError(t, err)
 
-	t.Cleanup(func() {
-		err = postgresContainer.Terminate(ctx)
-		assert.NoError(t, err)
-	})
-
-	containerPort, err := postgresContainer.MappedPort(ctx, "5432/tcp")
-	assert.NoError(t, err)
-
-	host, err := postgresContainer.Host(ctx)
-	assert.NoError(t, err)
-
-	return NewConfig(dbUser, dbPassword, host, containerPort.Port(), dbName, SSLModeDisable)
+	return postgresContainer
 }
 
 func TestTransactions(t *testing.T) {
 	t.Parallel()
-	connection := givenLaunchedPostgresContainerAndConfig(t).Connect()
+	connection := givenLaunchedPostgresContainerAndConfig(defaultContainerOptions(), t).Connect()
 
 	t.Run("TestConnectCanBeginAndRollbackTransaction", func(t *testing.T) {
 		testConnectCanBeginAndRollbackTransaction(t, connection)
@@ -61,6 +82,14 @@ func TestTransactions(t *testing.T) {
 
 	t.Run("TestBegin", func(t *testing.T) {
 		testBegin(t, connection)
+	})
+
+	t.Run("TestSearchPath", func(t *testing.T) {
+		testSearchPath(t)
+	})
+
+	t.Run("TestSearchPathDefault", func(t *testing.T) {
+		testSearchPathDefault(t)
 	})
 }
 
@@ -116,4 +145,30 @@ func testBegin(t *testing.T, connection *Conn) {
 	err = connection.Begin()
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, ErrTransactionAlreadyStarted)
+}
+
+func testSearchPath(t *testing.T) {
+	opt := defaultContainerOptions()
+	path := "test"
+	opt.searchPath = &path
+	conn := givenLaunchedPostgresContainerAndConfig(opt, t).Connect()
+
+	t.Cleanup(func() { assert.NoError(t, conn.db.Close()) })
+
+	var actual string
+	err := conn.db.QueryRow("SHOW search_path").Scan(&actual)
+	assert.NoError(t, err)
+	assert.Equal(t, path, actual)
+}
+
+func testSearchPathDefault(t *testing.T) {
+	opt := defaultContainerOptions()
+	conn := givenLaunchedPostgresContainerAndConfig(opt, t).Connect()
+
+	t.Cleanup(func() { assert.NoError(t, conn.db.Close()) })
+
+	var actual string
+	err := conn.db.QueryRow("SHOW search_path").Scan(&actual)
+	assert.NoError(t, err)
+	assert.Equal(t, "public", actual)
 }
